@@ -1,4 +1,8 @@
+import sys
 import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from app.database import init_db, save_review
+
 import requests
 from groq import Groq
 
@@ -7,7 +11,6 @@ GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 PR_NUMBER = os.environ.get("PR_NUMBER")
 PR_TITLE = os.environ.get("PR_TITLE")
 REPO_NAME = os.environ.get("REPO_NAME")
-
 client = Groq(api_key=GROQ_API_KEY)
 
 def get_pr_diff():
@@ -67,6 +70,7 @@ def post_comment(comment):
         print(f"❌ Gagal posting: {response.status_code}")
 
 if __name__ == "__main__":
+    init_db()
     print(f"🔍 Mereview PR #{PR_NUMBER}: {PR_TITLE}")
     diff = get_pr_diff()
     
@@ -75,3 +79,4 @@ if __name__ == "__main__":
     else:
         review = review_code(diff)
         post_comment(review)
+        save_review(REPO_NAME, PR_NUMBER, PR_TITLE, review)
