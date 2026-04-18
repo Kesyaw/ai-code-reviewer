@@ -32,12 +32,27 @@ def get_pr_diff():
     return diff_text
 
 def review_code(diff_text):
+    # Cari konteks serupa dari RAG (kalau DATABASE_URL ada)
+    rag_context = ""
+    db_url = os.environ.get("DATABASE_URL")
+    if db_url:
+        try:
+            from app.rag import find_similar_code
+            similar = find_similar_code(diff_text)
+            if similar:
+                rag_context = "\n\nKonteks dari review sebelumnya yang relevan:\n"
+                for r in similar:
+                    rag_context += f"- PR '{r[0]}': {r[2]}\n"
+        except Exception as e:
+            print(f"RAG skip: {e}")
+
     prompt = f"""Kamu adalah senior developer yang bertugas mereview Pull Request.
 
 PR Title: {PR_TITLE}
 
 Perubahan kode:
 {diff_text}
+{rag_context}
 
 Berikan review dalam format berikut:
 1. **Ringkasan** — apa yang dilakukan PR ini
@@ -52,7 +67,7 @@ Jawab dalam Bahasa Indonesia. Kalau kodenya sudah bagus, bilang juga!"""
         messages=[{"role": "user", "content": prompt}],
         max_tokens=1000
     )
-    
+
     return response.choices[0].message.content
 
 def post_comment(comment):
