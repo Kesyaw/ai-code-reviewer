@@ -1,1 +1,129 @@
 # AI Code Reviewer
+
+> Sistem AI yang otomatis mereview Pull Request di GitHub — mendeteksi bug, security vulnerability, dan memberikan saran perbaikan menggunakan LLM.
+
+## Demo
+
+Setiap kali ada Pull Request baru, AI langsung posting review otomatis:
+
+![AI Code Review Demo](docs/demo.png)
+
+## Arsitektur
+Developer Push PR
+↓
+GitHub Webhook / GitHub Actions
+↓
+Fetch PR Diff (GitHub API)
+↓
+RAG Pipeline (cari konteks serupa dari history)
+↓
+LLM Review (Groq + LLaMA 3.1)
+↓
+Post Komentar ke GitHub PR
+↓
+Simpan ke PostgreSQL + pgvector
+
+## Tech Stack
+
+| Layer             | Technology                        |
+|-------------------|-----------------------------------|
+| API Server        | FastAPI + Uvicorn                 |
+| AI Model          | LLaMA 3.1 8B via Groq API         |
+| RAG Pipeline      | sentence-transformers + pgvector  |
+| Database          | PostgreSQL 15                     |
+| CI/CD             | GitHub Actions                    |
+| Containerization  | Docker                            |
+
+## Features
+
+- **Auto Review** — AI review setiap PR yang dibuka atau diupdate
+- **Bug Detection** — deteksi potensi bug dan error
+- **Security Analysis** — deteksi SQL injection, hardcoded secrets, dll
+- **RAG Memory** — AI mengingat pola bug dari PR sebelumnya
+- **GitHub Actions** — jalan di cloud, tidak perlu server
+
+## Quick Start
+
+### Prerequisites
+- Python 3.10+
+- Docker
+- Groq API Key (gratis di console.groq.com)
+- GitHub Personal Access Token
+
+### Installation
+
+```bash
+# Clone repo
+git clone https://github.com/Kesyaw/ai-code-reviewer.git
+cd ai-code-reviewer
+
+# Setup virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Setup environment variables
+cp .env.example .env
+# Edit .env dengan API key kamu
+```
+
+### Setup Database
+
+```bash
+# Jalankan PostgreSQL
+docker run -d \
+  --name ai-reviewer-db \
+  -e POSTGRES_USER=kesyaw \
+  -e POSTGRES_PASSWORD=password123 \
+  -e POSTGRES_DB=ai_reviewer \
+  -p 5432:5432 \
+  postgres:15
+
+# Install pgvector
+docker exec -it ai-reviewer-db psql -U kesyaw -d ai_reviewer \
+  -c "CREATE EXTENSION IF NOT EXISTS vector;"
+```
+
+### Run Locally
+
+```bash
+uvicorn app.main:app --reload
+```
+
+### GitHub Actions Setup
+
+1. Fork repo ini
+2. Tambah secrets di **Settings → Secrets → Actions**:
+   - `GROQ_API_KEY`
+3. Setiap PR akan otomatis direview oleh AI
+
+## Project Structure
+ai-code-reviewer/
+├── app/
+│   ├── main.py          # FastAPI server + webhook handler
+│   ├── database.py      # PostgreSQL models + connection
+│   └── rag.py           # RAG pipeline + pgvector
+├── scripts/
+│   └── review.py        # AI review logic (dipakai GitHub Actions)
+├── .github/
+│   └── workflows/
+│       └── review.yml   # GitHub Actions workflow
+└── requirements.txt
+
+## Roadmap
+
+- [ ] Fine-tuning CodeLlama dengan LoRA
+- [ ] Dashboard monitoring review history
+- [ ] Support multi-language (JS, Go, Java)
+- [ ] Slack/Discord notification
+- [ ] RLHF feedback loop (thumbs up/down)
+
+## Author
+
+**Kesya** — [@Kesyaw](https://github.com/Kesyaw)
+
+---
+
+*Built with ❤️ as an AI Engineering portfolio project*
