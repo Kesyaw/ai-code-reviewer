@@ -70,7 +70,6 @@ def post_comment(comment):
         print(f"❌ Gagal posting: {response.status_code}")
 
 if __name__ == "__main__":
-    init_db()
     print(f"🔍 Mereview PR #{PR_NUMBER}: {PR_TITLE}")
     diff = get_pr_diff()
     
@@ -79,4 +78,12 @@ if __name__ == "__main__":
     else:
         review = review_code(diff)
         post_comment(review)
-        save_review(REPO_NAME, PR_NUMBER, PR_TITLE, review)
+        
+        # Simpan ke database kalau DATABASE_URL tersedia
+        db_url = os.environ.get("DATABASE_URL")
+        if db_url:
+            from app.database import init_db, save_review
+            init_db()
+            save_review(REPO_NAME, PR_NUMBER, PR_TITLE, review)
+        else:
+            print("ℹ️ DATABASE_URL tidak ada, skip simpan ke database")
