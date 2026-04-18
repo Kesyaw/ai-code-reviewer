@@ -1,7 +1,6 @@
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from app.database import init_db, save_review
 
 import requests
 from groq import Groq
@@ -11,6 +10,7 @@ GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 PR_NUMBER = os.environ.get("PR_NUMBER")
 PR_TITLE = os.environ.get("PR_TITLE")
 REPO_NAME = os.environ.get("REPO_NAME")
+
 client = Groq(api_key=GROQ_API_KEY)
 
 def get_pr_diff():
