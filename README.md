@@ -11,13 +11,17 @@ Setiap kali ada Pull Request baru, AI langsung posting review otomatis:
 ## Arsitektur
 Developer Push PR
 ↓
-GitHub Webhook / GitHub Actions
+GitHub Actions (triggered otomatis)
 ↓
 Fetch PR Diff (GitHub API)
 ↓
-RAG Pipeline (cari konteks serupa dari history)
+LangChain ReAct Agent
+├── search_similar_bugs → RAG + pgvector
+├── analyze_security    → SQL injection, hardcoded secrets, dll
+├── analyze_performance → N+1 query, memory leak, dll
+└── analyze_code_quality → code smells, naming, structure
 ↓
-LLM Review (Groq + LLaMA 3.1)
+Agent gabungkan semua hasil
 ↓
 Post Komentar ke GitHub PR
 ↓
@@ -27,6 +31,7 @@ Simpan ke PostgreSQL + pgvector
 
 | Layer             | Technology                        |
 |-------------------|-----------------------------------|
+| Agent Framework   | LangChain + LangGraph             |
 | API Server        | FastAPI + Uvicorn                 |
 | AI Model          | LLaMA 3.1 8B via Groq API         |
 | RAG Pipeline      | sentence-transformers + pgvector  |
@@ -36,11 +41,13 @@ Simpan ke PostgreSQL + pgvector
 
 ## Features
 
-- **Auto Review** — AI review setiap PR yang dibuka atau diupdate
-- **Bug Detection** — deteksi potensi bug dan error
-- **Security Analysis** — deteksi SQL injection, hardcoded secrets, dll
-- **RAG Memory** — AI mengingat pola bug dari PR sebelumnya
-- **GitHub Actions** — jalan di cloud, tidak perlu server
+- **Agentic Review** — LangChain ReAct Agent yang decide sendiri tools mana yang dipanggil
+- **Multi-tool Analysis** — 4 specialized tools: security, performance, code quality, RAG search
+- **RAG Memory** — AI mengingat pola bug dari PR sebelumnya menggunakan pgvector
+- **Auto Review** — triggered otomatis setiap PR dibuka atau diupdate
+- **Fallback System** — kalau agent gagal, otomatis fallback ke review biasa
+- **GitHub Actions** — serverless, gratis, zero maintenance
+- **Bilingual** — support review dalam Bahasa Indonesia dan Inggris
 
 ## Quick Start
 
@@ -103,6 +110,7 @@ uvicorn app.main:app --reload
 ai-code-reviewer/
 ├── app/
 │   ├── main.py          # FastAPI server + webhook handler
+│   ├── agent.py         # LangChain ReAct Agent + 4 tools
 │   ├── database.py      # PostgreSQL models + connection
 │   └── rag.py           # RAG pipeline + pgvector
 ├── scripts/
@@ -114,7 +122,7 @@ ai-code-reviewer/
 
 ## Roadmap
 
-- [ ] Fine-tuning CodeLlama dengan LoRA
+- [ ] Fine-tuning CodeLlama dengan LoRA (bilingual EN/ID)
 - [ ] Dashboard monitoring review history
 - [ ] Support multi-language (JS, Go, Java)
 - [ ] Slack/Discord notification
