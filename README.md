@@ -123,7 +123,7 @@ ai-code-reviewer/
 ## Roadmap
 
 - [ ] Fine-tuning CodeLlama dengan LoRA (bilingual EN/ID)
-- [ ] Dashboard monitoring review history
+- [x] Dashboard monitoring review history (Streamlit + Plotly)
 - [ ] Support multi-language (JS, Go, Java)
 - [ ] Slack/Discord notification
 - [ ] RLHF feedback loop (thumbs up/down)
