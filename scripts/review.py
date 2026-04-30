@@ -21,14 +21,14 @@ def get_pr_diff():
     }
     response = requests.get(url, headers=headers)
     files = response.json()
-    
+
     diff_text = ""
     for file in files:
         filename = file.get("filename", "")
         patch = file.get("patch", "")
         if patch:
             diff_text += f"\n--- {filename} ---\n{patch}\n"
-    
+
     return diff_text
 
 def review_code(diff_text):
@@ -78,7 +78,7 @@ def post_comment(comment):
     }
     data = {"body": f"## 🤖 AI Code Review\n\n{comment}"}
     response = requests.post(url, headers=headers, json=data)
-    
+
     if response.status_code == 201:
         print(f"✅ Review berhasil diposting ke PR #{PR_NUMBER}")
     else:
@@ -87,13 +87,38 @@ def post_comment(comment):
 if __name__ == "__main__":
     print(f"🔍 Mereview PR #{PR_NUMBER}: {PR_TITLE}")
     diff = get_pr_diff()
-    
+
     if not diff:
         print("⚠️ Tidak ada perubahan kode yang bisa direview")
     else:
-        review = review_code(diff)
-        post_comment(review)
-        
+        # ============================================================
+        # AGENTIC REVIEW — pakai LangChain ReAct Agent
+        # Agent akan decide sendiri tools mana yang dipanggil:
+        # - analyze_security
+        # - analyze_performance
+        # - search_similar_bugs (RAG)
+        # - analyze_code_quality
+        #
+        # Kalau agent gagal (misal library tidak tersedia di CI),
+        # fallback ke review biasa dengan Groq langsung
+        # ============================================================
+        try:
+            print("🤖 Mencoba Agentic Review...")
+            from app.agent import run_agent_review, post_agent_review
+            review = run_agent_review(
+                diff_text=diff,
+                pr_number=int(PR_NUMBER),
+                pr_title=PR_TITLE,
+                repo_name=REPO_NAME
+            )
+            post_agent_review(REPO_NAME, int(PR_NUMBER), review)
+            print("✅ Agentic review selesai")
+
+        except Exception as e:
+            print(f"⚠️ Agent gagal ({e}), fallback ke review biasa...")
+            review = review_code(diff)
+            post_comment(review)
+
         # Simpan ke database kalau DATABASE_URL tersedia
         db_url = os.environ.get("DATABASE_URL")
         if db_url:
