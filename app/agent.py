@@ -86,24 +86,20 @@ def search_similar_bugs(code: str) -> str:
 
     db_url = os.getenv("DATABASE_URL")
     if not db_url:
-        return "RAG database tidak tersedia."
+        return "RAG database tidak tersedia di environment ini — skip."
 
     try:
         from app.rag import find_similar_code
         results = find_similar_code(code, top_k=3)
-
         if not results:
             return "Tidak ada bug serupa di history."
-
         context = "Bug serupa yang pernah ditemukan:\n"
         for i, r in enumerate(results, 1):
             context += f"\n{i}. PR: '{r[0]}'\n   Bug: {str(r[2])[:150]}\n"
         return context
-
     except Exception as e:
-        return f"RAG search tidak tersedia: {e}"
-
-
+        return f"RAG tidak tersedia: {e}"
+    
 # ============================================================
 # TOOL 4: Analisis Code Quality
 # ============================================================
