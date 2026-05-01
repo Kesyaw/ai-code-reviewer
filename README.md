@@ -2,11 +2,13 @@
 
 > Sistem AI yang otomatis mereview Pull Request di GitHub — mendeteksi bug, security vulnerability, dan memberikan saran perbaikan menggunakan LLM.
 
-## Demo
+## Live Demo
 
 Setiap kali ada Pull Request baru, AI langsung posting review otomatis:
 
-![AI Code Review Demo](docs/demo.png)
+**Dashboard:** https://kesyaw-ai-code-reviewer.streamlit.app
+
+**Model:** https://huggingface.co/Kesyaw/code-reviewer-bilingual-lora
 
 ## Arsitektur
 Developer Push PR
