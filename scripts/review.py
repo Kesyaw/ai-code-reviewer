@@ -91,17 +91,6 @@ if __name__ == "__main__":
     if not diff:
         print("⚠️ Tidak ada perubahan kode yang bisa direview")
     else:
-        # ============================================================
-        # AGENTIC REVIEW — pakai LangChain ReAct Agent
-        # Agent akan decide sendiri tools mana yang dipanggil:
-        # - analyze_security
-        # - analyze_performance
-        # - search_similar_bugs (RAG)
-        # - analyze_code_quality
-        #
-        # Kalau agent gagal (misal library tidak tersedia di CI),
-        # fallback ke review biasa dengan Groq langsung
-        # ============================================================
         try:
             print("🤖 Mencoba Agentic Review...")
             from app.agent import run_agent_review, post_agent_review
@@ -119,11 +108,32 @@ if __name__ == "__main__":
             review = review_code(diff)
             post_comment(review)
 
-        # Simpan ke database kalau DATABASE_URL tersedia
+        # Simpan ke Supabase (cloud) kalau SUPABASE_URL ada
+        supabase_url = os.environ.get("SUPABASE_URL")
+        if supabase_url:
+            try:
+                from sqlalchemy import create_engine, text
+                engine = create_engine(supabase_url)
+                with engine.connect() as conn:
+                    conn.execute(text('''
+                        INSERT INTO review_history (repo_name, pr_number, pr_title, review_result)
+                        VALUES (:repo, :pr_num, :title, :review)
+                    '''), {
+                        'repo': REPO_NAME,
+                        'pr_num': int(PR_NUMBER),
+                        'title': PR_TITLE,
+                        'review': review
+                    })
+                    conn.commit()
+                print("✅ Review tersimpan ke Supabase")
+            except Exception as e:
+                print(f"⚠️ Gagal simpan ke Supabase: {e}")
+
+        # Simpan ke database lokal kalau DATABASE_URL ada
         db_url = os.environ.get("DATABASE_URL")
         if db_url:
             from app.database import init_db, save_review
             init_db()
             save_review(REPO_NAME, PR_NUMBER, PR_TITLE, review)
         else:
-            print("ℹ️ DATABASE_URL tidak ada, skip simpan ke database")
+            print("ℹ️ DATABASE_URL tidak ada, skip simpan ke database lokal")

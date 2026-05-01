@@ -24,6 +24,10 @@ st.set_page_config(
     layout="wide",
 )
 
+# Auto-refresh setiap 30 detik
+from streamlit_autorefresh import st_autorefresh
+st_autorefresh(interval=30000, key="dashboard_refresh")
+
 # ============================================================
 # LOAD DATA DARI DATABASE
 # ============================================================
