@@ -28,8 +28,9 @@ st.set_page_config(
 # LOAD DATA DARI DATABASE
 # ============================================================
 def load_data():
-    """Load review history dari PostgreSQL"""
-    db_url = os.getenv("DATABASE_URL")
+    """Load review history dari database"""
+    # Coba SUPABASE_URL dulu, kalau tidak ada coba DATABASE_URL
+    db_url = os.getenv("SUPABASE_URL") or os.getenv("DATABASE_URL")
     if not db_url:
         return None
 
