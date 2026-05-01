@@ -278,3 +278,25 @@ if len(filtered_df) > 0:
         st.markdown(review_row['review_result'])
 else:
     st.info("Tidak ada review dalam periode yang dipilih")
+
+
+# ============================================================
+# AI REVIEW HISTORY — Full review text
+# ============================================================
+st.divider()
+st.subheader("🤖 AI Review History")
+st.markdown("Semua review yang pernah diposting oleh AI Agent ke GitHub PR")
+
+for _, row in filtered_df.sort_values('created_at', ascending=False).iterrows():
+    with st.expander(f"PR #{row['pr_number']} — {row['pr_title']} | {row['created_at'].strftime('%Y-%m-%d %H:%M')}"):
+        col1, col2 = st.columns([1, 3])
+        with col1:
+            st.markdown(f"**Repository**")
+            st.markdown(f"**PR Number**")
+            st.markdown(f"**Waktu**")
+        with col2:
+            st.markdown(f"`{row['repo_name']}`")
+            st.markdown(f"#{row['pr_number']}")
+            st.markdown(f"{row['created_at'].strftime('%Y-%m-%d %H:%M')}")
+        st.divider()
+        st.markdown(row['review_result'])
