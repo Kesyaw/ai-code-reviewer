@@ -35,17 +35,17 @@ def analyze_security(code: str) -> str:
     Gunakan tool ini jika kode mengandung database query, user input, atau auth."""
 
     response = llm.invoke(
-        f"""Kamu adalah security expert. Analisis kode berikut KHUSUS untuk security issues.
+        f"""You are a security expert. Analyze the following code SPECIFICALLY for security issues.
 
-Cek untuk: SQL Injection, Hardcoded credentials, Command injection,
+Check for: SQL Injection, Hardcoded credentials, Command injection,
 Missing authentication, Sensitive data exposure.
 
-Kode:
+Code:
 {code}
 
-Format output:
-[SEVERITY: HIGH/MEDIUM/LOW] Nama issue: deskripsi + solusi konkret.
-Kalau tidak ada issue: tulis "No security issues found." """
+Output format:
+[SEVERITY: HIGH/MEDIUM/LOW] Issue name: description + concrete solution.
+If no issues: write "No security issues found." """
     )
     return response.content
 
@@ -60,17 +60,17 @@ def analyze_performance(code: str) -> str:
     Gunakan tool ini jika kode mengandung loop, database query, atau data processing."""
 
     response = llm.invoke(
-        f"""Kamu adalah performance engineer. Analisis kode berikut KHUSUS untuk performance issues.
+        f"""You are a performance engineer. Analyze the following code SPECIFICALLY for performance issues.
 
-Cek untuk: N+1 query, Unnecessary loops, Memory leaks,
+Check for: N+1 query, Unnecessary loops, Memory leaks,
 Missing pagination, Inefficient data structures.
 
-Kode:
+Code:
 {code}
 
-Format output:
-[IMPACT: HIGH/MEDIUM/LOW] Nama issue: deskripsi + solusi konkret.
-Kalau tidak ada issue: tulis "No performance issues found." """
+Output format:
+[IMPACT: HIGH/MEDIUM/LOW] Issue name: description + concrete solution.
+If no issues: write "No performance issues found." """
     )
     return response.content
 
@@ -92,14 +92,14 @@ def search_similar_bugs(code: str) -> str:
         from app.rag import find_similar_code
         results = find_similar_code(code, top_k=3)
         if not results:
-            return "Tidak ada bug serupa di history."
-        context = "Bug serupa yang pernah ditemukan:\n"
+            return "No similar bugs found in history."
+        context = "Similar bugs found in history:\n"
         for i, r in enumerate(results, 1):
             context += f"\n{i}. PR: '{r[0]}'\n   Bug: {str(r[2])[:150]}\n"
         return context
     except Exception as e:
         return f"RAG tidak tersedia: {e}"
-    
+
 # ============================================================
 # TOOL 4: Analisis Code Quality
 # ============================================================
@@ -109,17 +109,17 @@ def analyze_code_quality(code: str) -> str:
     dan best practices. Gunakan tool ini untuk semua kode."""
 
     response = llm.invoke(
-        f"""Kamu adalah senior developer. Analisis kode berikut untuk code quality.
+        f"""You are a senior developer. Analyze the following code for quality issues.
 
-Cek untuk: Code smells, Poor naming, Missing error handling,
+Check for: Code smells, Poor naming, Missing error handling,
 Missing input validation, Poor structure, Missing documentation.
 
-Kode:
+Code:
 {code}
 
-Format output:
-[TYPE: SMELL/ERROR/STRUCTURE] Nama issue: deskripsi + solusi konkret.
-Kalau tidak ada issue: tulis "Code quality is good." """
+Output format:
+[TYPE: SMELL/ERROR/STRUCTURE] Issue name: description + concrete solution.
+If no issues: write "Code quality is good." """
     )
     return response.content
 
@@ -145,36 +145,62 @@ def run_agent_review(diff_text: str, pr_number: int,
 
     print(f"\n🤖 Agent mulai review PR #{pr_number}: {pr_title}")
 
-    prompt = f"""Kamu adalah AI Code Reviewer. Review Pull Request berikut secara menyeluruh.
+    # ============================================================
+    # AUTO-DETECT BAHASA dari PR title
+    # Kalau PR title pakai kata Inggris → review Inggris
+    # Kalau PR title pakai kata Indonesia → review Indonesia
+    # ============================================================
+    english_keywords = [
+        'add', 'fix', 'update', 'refactor', 'remove', 'feat',
+        'bug', 'test', 'docs', 'chore', 'improve', 'implement',
+        'create', 'delete', 'merge', 'hotfix', 'release', 'revert'
+    ]
+    pr_title_lower = pr_title.lower()
+    is_english = any(kw in pr_title_lower for kw in english_keywords)
+
+    if is_english:
+        language_instruction = "Respond entirely in English."
+        format_section = """## Summary
+## Security Issues
+## Performance Issues
+## Code Quality
+## Similar Past Bugs
+## Recommendation"""
+    else:
+        language_instruction = "Jawab seluruhnya dalam Bahasa Indonesia."
+        format_section = """## Ringkasan
+## Masalah Keamanan
+## Masalah Performa
+## Kualitas Kode
+## Bug Serupa
+## Rekomendasi"""
+
+    prompt = f"""You are an AI Code Reviewer. Review the following Pull Request thoroughly.
 
 PR Title: {pr_title}
 PR Number: #{pr_number}
 Repository: {repo_name}
 
-Perubahan kode:
+Code changes:
 {diff_text[:3000]}
 
-Instruksi:
-1. Gunakan search_similar_bugs untuk cek bug serupa di history
-2. Gunakan analyze_security untuk cek security issues
-3. Gunakan analyze_performance untuk cek performance issues  
-4. Gunakan analyze_code_quality untuk cek code quality
-5. Setelah semua tool selesai, berikan summary review yang komprehensif
+Instructions:
+1. Use search_similar_bugs to check for similar bugs in history
+2. Use analyze_security to check security issues
+3. Use analyze_performance to check performance issues
+4. Use analyze_code_quality to check code quality
+5. After all tools complete, provide a comprehensive review summary
 
-Berikan final review dalam format:
-## Summary
-## Security Issues
-## Performance Issues  
-## Code Quality
-## Similar Past Bugs
-## Recommendation"""
+{language_instruction}
+
+Provide final review in this format:
+{format_section}"""
 
     try:
         result = agent.invoke({
             "messages": [HumanMessage(content=prompt)]
         })
 
-        # Ambil pesan terakhir dari agent
         final_message = result["messages"][-1].content
         print(f"✅ Agent selesai review PR #{pr_number}")
         return final_message
